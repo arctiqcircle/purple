@@ -64,10 +64,22 @@ def get_lldp_neighbors(text_lines: list[str]) -> dict[str, str]:
 
 
 # TODO: write parsing functions for ISIS adjacency, MAC table, and port state
+def get_port_state(text_lines: list[str]) -> dict[str, str]:
+    """
+    parse the output of "show interfaces gigabitEthernet" and create a table correlating
+    the port name and the port status
+
+    :param text_lines: the output of "show interfaces gigabitEthernet" seperated by lines
+    :return: a dictionary holding port states indexed by port names
+    """
+    data = {}
+    pass
+
 
 # This is a dictionary mapping command text to a parsing function.
 BINDINGS = {
     "show lldp neighbor summary": get_lldp_neighbors,
+    "show interfaces gigabitEthernet": get_port_state
 }
 
 if __name__ == "__main__":
@@ -84,3 +96,4 @@ if __name__ == "__main__":
     outputs = {command: BINDINGS[command](output) for command, output in extract_commands(content, BINDINGS.keys())}
     # TODO: Merge the parsed data around the primary key, the port name
     # print(json.dumps(outputs, indent=2))
+
