@@ -70,10 +70,12 @@ def get_lldp_neighbors(text_lines: list[str]) -> dict[str, dict[str, str]]:
             data.update({port_name: {}})
         elif "SysName" in line:
             # This line contains hostname (SysName) information
-            # Grab everything after the colon and remove all whitespace
-            data[port_name]["SysName"] = ''.join(line.split(':')[1:]).replace(' ', '')
+            # Grab the SysName. It is the last word on the line.
+            data[port_name]["SysName"] = line.split()[-1].strip()
         elif "PortId" in line:
             # This line contains remote port information
+            # Grab the port name. It is the last word in the line.
+            data[port_name]["PortId"] = line.split()[-1].strip()
             pass
     return data
 
