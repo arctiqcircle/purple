@@ -73,7 +73,13 @@ def get_port_state(text_lines: list[str]) -> dict[str, str]:
     :return: a dictionary holding port states indexed by port names
     """
     data = {}
-    pass
+    pattern = re.compile(r'\d+\/\d+')
+    for line in text_lines:
+        match = text_lines.search(pattern)
+        if match:
+            status = re.search(r'up')
+            data.update({port_name: {}})
+    return data
 
 
 # This is a dictionary mapping command text to a parsing function.
