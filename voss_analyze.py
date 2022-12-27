@@ -15,8 +15,9 @@ from typing import Callable
 import re
 import csv
 
-# This is a constant for identifying when a line is a line containing a command
-COMMAND_IDENTIFIER = re.compile(r'Command:\[\d+\]')
+
+def command_id(_c: str) -> re.Pattern:
+    return re.compile(fr'Command:\[\d+\] \[\s*{_c}\s*\]')
 
 
 def extract_commands(text_lines: str, command_set: list[str]) -> (str, list[str]):
@@ -30,7 +31,7 @@ def extract_commands(text_lines: str, command_set: list[str]) -> (str, list[str]
     current_command = None
     txt = []
     for line in text_lines:
-        if COMMAND_IDENTIFIER.search(line):
+        if re.search(r"Command:\[\d+\]", line):
             # This line contains a command.
             if current_command:
                 # We have reached a new command, and we have been gathering output.
@@ -41,7 +42,7 @@ def extract_commands(text_lines: str, command_set: list[str]) -> (str, list[str]
                 txt = []
                 yield tmp
             for cmd in command_set:
-                if cmd in line:
+                if command_id(cmd).search(line):
                     # One of the commands we are looking for has been found.
                     # We can now start gathering the output.
                     current_command = cmd
