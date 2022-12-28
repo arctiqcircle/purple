@@ -27,7 +27,7 @@ class Switch(ABC):
     @classmethod
     def parser(cls, command: str) -> Callable:
         """
-        This decorator is used to inject parsing functions into the VOSS class.
+        This decorator is used to inject parsing functions into the class.
         The parsing function must take a list of strings as its only argument and return a dictionary keyed by Port.
         These functions are accessible via direct call, iteration, and item access.
 

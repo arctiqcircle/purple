@@ -12,9 +12,9 @@ import json
 import argparse
 from pathlib import Path
 
-# Set the path to the parent directory if this script is run from the scripts' directory
-# else set the path to the current directory
-path = os.getcwd() if os.getcwd() != os.path.dirname(os.path.realpath(__file__)) else '..'
+# Set the path to the parent directory of the current file. Unless this script is
+# moved, this should be the root of the project.
+path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 try:
     sys.path.index(path)
 except ValueError:
