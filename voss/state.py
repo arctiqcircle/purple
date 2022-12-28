@@ -1,7 +1,11 @@
 import re
 
+from dynex import Port
+from voss import VOSS
 
-def get_port_state(text_lines: list[str]) -> dict[str, str]:
+
+@VOSS.parser("show interfaces gigabitEthernet")
+def get_port_state(text_lines: list[str]) -> dict[Port, str]:
     """
     parse the output of "show interfaces gigabitEthernet" and create a table correlating
     the port name and the port status

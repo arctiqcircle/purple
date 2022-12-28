@@ -1,7 +1,11 @@
 import re
 
+from dynex import Port
+from voss import VOSS
 
-def get_lldp_neighbors(text_lines: list[str]) -> dict[str, dict[str, str]]:
+
+@VOSS.parser("show lldp neighbor")
+def get_lldp_neighbors(text_lines: list[str]) -> dict[Port, dict[str, str]]:
     """
     parse the output of "show lldp neighbor" and create structured data correlating
     the local port name with the lldp neighbor hostname and remote port name
