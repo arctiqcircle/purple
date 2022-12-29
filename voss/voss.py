@@ -1,8 +1,8 @@
 import re
 from pathlib import Path
 from collections.abc import Collection
-from typing import Any
-from dynex import Switch, Port
+from typing import Any, NamedTuple
+from dynex import Switch
 
 
 class VOSS(Switch):
@@ -30,7 +30,7 @@ class VOSS(Switch):
         with open(tech_file_path, 'r') as f:
             return cls(f.readlines())
 
-    def __getitem__(self, command: str) -> dict[Port, Any]:
+    def __getitem__(self, command: str) -> dict[NamedTuple, Any]:
         """
         Run the parsing function for a given command and return the result.
         This is less memory efficient than iteration over the VOSS object, but it is more convenient.
@@ -41,7 +41,7 @@ class VOSS(Switch):
         _, lines = _extract_commands(self.tech_file, [command])
         return self._commands[command](lines)
 
-    def __iter__(self) -> tuple[str, dict[Port, Any]]:
+    def __iter__(self) -> tuple[str, dict[NamedTuple, Any]]:
         """
         Iterate over the commands in the tech file and return the command and the parsed results.
         This is more memory efficient than direct call, but it is less convenient.
@@ -51,7 +51,7 @@ class VOSS(Switch):
         for cmd, lines in _extract_commands(self.tech_file, self._commands.keys()):
             yield cmd, self._commands[cmd](lines)
 
-    def parse(self) -> dict[Port, dict[str, Any]]:
+    def parse(self) -> dict[NamedTuple, dict[str, Any]]:
         """
         Return all parsed data from the tech file after joining the results by port name
         and merging individual port data into a single dictionary.
