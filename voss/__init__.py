@@ -6,4 +6,4 @@ Each included module contains functions for parsing the output of a given comman
 # TODO: Add support for parsing ISIS adjacency and MAC table, include import
 from voss.voss import VOSS
 import voss.state
-import voss.lldp
+import voss.layer2

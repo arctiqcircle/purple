@@ -51,6 +51,24 @@ class VOSS(Switch):
         for cmd, lines in _extract_commands(self.tech_file, self._commands.keys()):
             yield cmd, self._commands[cmd](lines)
 
+    def parse(self) -> dict[Port, dict[str, Any]]:
+        """
+        Return all parsed data from the tech file after joining the results by port name
+        and merging individual port data into a single dictionary.
+
+        :return: combined parsed data
+        """
+        data = {}
+        for cmd, result in self:
+            for port, sub_data in result.items():
+                if port not in data:
+                    data[port] = {}
+                if isinstance(sub_data, dict):
+                    data[port].update(sub_data)
+                else:
+                    data[port][type(sub_data)] = sub_data
+        return data
+
 
 def _extract_commands(text_lines: list[str], command_set: Collection[str]) -> (str, list[str]):
     """
