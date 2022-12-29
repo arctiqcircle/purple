@@ -3,6 +3,19 @@ from collections import namedtuple
 from typing import Any, Callable
 
 Port = namedtuple("Port", ['name'])
+Port.__doc__ = """
+A Port is a layer 2 construct that is used to connect two devices together.
+"""
+Interface = namedtuple("Interface", ['name'])
+Interface.__doc__ = """
+An Interface is a layer 3 construct that is used to identify a device on a network.
+It can correspond to a physical port on a device, or it can be a logical construct.
+"""
+Network = namedtuple("Network", ['address', 'mask'])
+Network.__doc__ = """
+A Network is a layer 3 construct denoting a range of consecutive IP addresses that
+are grouped by masks for routing purposes.
+"""
 
 
 class Switch(ABC):
