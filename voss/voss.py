@@ -53,20 +53,23 @@ class VOSS(Switch):
 
     def parse(self) -> dict[NamedTuple, dict[str, Any]]:
         """
-        Return all parsed data from the tech file after joining the results by port name
-        and merging individual port data into a single dictionary.
+        Parse all the data in the tech file for which we have parsing functions.
+        Group the results by the type of the indexing object into a new dictionary.
+        All these new dictionaries are then added to a new dictionary where they're
+        keyed by the name of the type of the indexing object.
 
         :return: combined parsed data
         """
         data = {}
         for cmd, result in self:
-            for port, sub_data in result.items():
-                if port not in data:
-                    data[port] = {}
-                if isinstance(sub_data, dict):
-                    data[port].update(sub_data)
-                else:
-                    data[port][type(sub_data)] = sub_data
+            for indexing_object, sub_data in result.items():
+                t = type(indexing_object)
+                if t not in data:
+                    data[t] = {}
+                if indexing_object not in data[t]:
+                    data[t][indexing_object] = {}
+                d = sub_data if isinstance(sub_data, dict) else {type(sub_data): sub_data}
+                data[t][indexing_object].update(d)
         return data
 
 
