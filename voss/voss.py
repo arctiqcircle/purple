@@ -1,9 +1,9 @@
 import re
+import json
 from pathlib import Path
 from collections.abc import Collection
-from typing import Any, NamedTuple
-from dynex import Switch
-
+from typing import Any, NamedTuple, Type
+from base.typing import Switch
 
 class VOSS(Switch):
     """
@@ -30,6 +30,20 @@ class VOSS(Switch):
         with open(tech_file_path, 'r') as f:
             return cls(f.readlines())
 
+    def save(self, filename: str) -> None:
+        """
+        Save the data in the tech file to a JSON file.
+        This requires the data to be parsed first and
+        then translating the named tuples into
+        strings so that they can be serialized.
+
+        :param filename: the name of the new file
+        """
+        data = self.parse()
+        serialized = { t.__name__: { str(k): v for k, v in d.items() } for t, d in data.items() }
+        with open(filename, 'w') as f:
+            json.dump(serialized, f, indent=2)
+
     def __getitem__(self, command: str) -> dict[NamedTuple, Any]:
         """
         Run the parsing function for a given command and return the result.
@@ -51,7 +65,7 @@ class VOSS(Switch):
         for cmd, lines in _extract_commands(self.tech_file, self._commands.keys()):
             yield cmd, self._commands[cmd](lines)
 
-    def parse(self) -> dict[NamedTuple, dict[str, Any]]:
+    def parse(self) -> dict[Type, dict[NamedTuple, dict[str, Any]]]:
         """
         Parse all the data in the tech file for which we have parsing functions.
         Group the results by the type of the indexing object into a new dictionary.
@@ -68,7 +82,7 @@ class VOSS(Switch):
                     data[t] = {}
                 if indexing_object not in data[t]:
                     data[t][indexing_object] = {}
-                d = sub_data if isinstance(sub_data, dict) else {type(sub_data): sub_data}
+                d = sub_data if isinstance(sub_data, dict) else {type(sub_data).__name__: sub_data}
                 data[t][indexing_object].update(d)
         return data
 

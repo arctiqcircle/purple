@@ -8,7 +8,6 @@ handled to provide a full stack trace in the event an exception does occur.
 """
 import sys
 import os
-import json
 import argparse
 from pathlib import Path
 from typing import Any
@@ -27,17 +26,19 @@ if __name__ == "__main__":
     parser.add_argument("filename", type=Path, help="a filepath to a VOSS tech file")
     parser.add_argument("--output", "-o", type=Path, default=os.getcwd(), help="a filepath for the analysis output")
     args = parser.parse_args(sys.argv[1:])
-    from dynex import Port
+    from base.typing import Port
     from voss import VOSS
     voss = VOSS.load(args.filename)
     # Search through the tech file for the commands we're looking for.
     # Pump the corresponding output through the bound parsing function.
     # Record the command and the parsed information in a dictionary.
-    outputs: dict[str, dict[Port, Any]] = {cmd: result for cmd, result in voss}
+    # outputs: dict[str, dict[Port, Any]] = {cmd: result for cmd, result in voss}
     # print(json.dumps(outputs, indent=2))
-    # TODO: Merge the parsed data around the primary key, the port name
-    parsed_data = voss.parse()
+    # parsed_data = voss.parse()
     # print(json.dumps(parsed_data, indent=2))
     if not args.output.exists():
         args.output.mkdir()
+    if args.output.is_dir():
+        args.output = args.output / f"{args.filename.stem}.json"
+    voss.save(args.output)
 

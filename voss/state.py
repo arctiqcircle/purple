@@ -1,7 +1,7 @@
 import re
 
 from typing import Any
-from dynex import Port
+from base.typing import Port
 from voss import VOSS
 
 
