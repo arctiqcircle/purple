@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Any, Callable
+from typing import Any, Callable, NamedTuple, Type
 
 Port = namedtuple("Port", ['name'])
 Port.__doc__ = """
@@ -31,11 +31,21 @@ class Switch(ABC):
     # It is populated by the parser decorator.
     _commands: dict[str, Callable] = {}
 
+    @classmethod
     @abstractmethod
-    def __getitem__(self, command: str) -> dict[Port, Any]: ...
+    def load(cls, filename: str): ...
 
     @abstractmethod
-    def __iter__(self) -> tuple[str, dict[Port, Any]]: ...
+    def save(self, filename: str) -> None: ...
+
+    @abstractmethod
+    def __getitem__(self, command: str) -> dict[NamedTuple, Any]: ...
+
+    @abstractmethod
+    def __iter__(self) -> tuple[str, dict[NamedTuple, Any]]: ...
+
+    @abstractmethod
+    def parse(self) -> dict[Type, dict[NamedTuple, dict[str, Any]]]: ...
 
     @classmethod
     def parser(cls, command: str) -> Callable:
