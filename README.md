@@ -26,6 +26,8 @@ To do this, you can run the following command in your terminal:
 chmod +x scripts/*
 ```
 
+To set permissions on a Windows machine you will need to access the properties of the file and check the "Allow executing file as program" box.
+
 ### Usage
 To use DynEx, you will need to have a "tech file" for the switch(s) you want to analyze.
 These tech files can be obtained by running the `show tech` command on the switch.
@@ -34,4 +36,3 @@ Once you have a tech file, you can run the scripts located in the [scripts'](scr
 You can consult the documentation in that directory for more information on the operation of specific scripts.
 
 Every script has a help menu that can be accessed by running the script with the `-h` or `--help` flag.
-Most scripts also have a `-v` or `--verbose` flag that can be used to increase the verbosity of the output as well.
