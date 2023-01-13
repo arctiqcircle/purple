@@ -4,24 +4,36 @@ from abc import ABC, abstractmethod
 
 from base.switch import Switch
 
-
 @dataclass(frozen=True)
-class Port(Switch.Object):
+class State(Switch.Object):
     """
-    A Port is a layer 2 construct that is used to connect two devices together.
-    It has a defined up or down state. It can learn MAC addresses which are out
-    the port. It can form peering with new ports via a variety of protocols.
+    The State class represents the operational or administrative state of a Switch object.
     """
-    name: str
+    description: str
 
-    def __eq__(self, new: Port) -> bool:
-        return self.name == new.name
+    def __eq__(self, other: State) -> bool:
+        return self.description == other.description
 
-    def __ne__(self, new: Port) -> dict | None:
-        if self.name != new.name:
-            return {"old": self.name, "new": new.name}
+    def __ne__(self, other: State) -> dict | None:
+        if self.description != other.description:
+            return {"old": self.description, "new": other.description}
         return None
 
+@dataclass(frozen=True)
+class Connection(Switch.Object):
+    """
+    A Connection is an L2 or L3 connection between two systems.
+    A Connection describes the other end of the connection.
+    """
+    connected_device: str
+
+    def __eq__(self, new: Connection) -> bool:
+        return self.connected_device == new.connected_device
+
+    def __ne__(self, new: Connection) -> dict | None:
+        if self.connected_device != new.connected_device:
+            return {"old": self.connected_device, "new": new.connected_device}
+        return None
 
 @dataclass(frozen=True)
 class Interface(Switch.Object):

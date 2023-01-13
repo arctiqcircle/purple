@@ -8,7 +8,7 @@ from pathlib import Path
 import json
 
 
-class SourceData(ABC):
+class SourceData:
     """
     A SourceData is a dataclass that is used to represent a switch objects
     raw data. It is used to parse the raw data into a Switch Object.
@@ -25,38 +25,27 @@ class SourceData(ABC):
     """
 
     _commands: dict[str, Callable] = {}
-    _data_store: dict[str, dict[Switch.Object, Any]] = {}
-    _data_stream: Iterable[str] = None
+    data_store: dict[str, dict[Switch.Object, Any]] = {}
+    data_stream: Iterable[str] = None
 
     @classmethod
     @abstractmethod
     def extractor(cls, text_lines: Iterable[str], command_set: Collection[str]) -> (str, list[str]): ...
 
     @classmethod
-    def load(cls, tech_file_path: Path):
+    def load(cls, file_path: Path) -> SourceData:
         """
-        Load a tech file from a file path.
+        Load SourceData from a file path.
         To cut down on memory usage, the tech file is not loaded into memory
         at instantiation time. Instead, the tech file is loaded into memory
         by a `with` statement and read as needed line by line.
 
-        :param tech_file_path: the path to the tech file
+        :param file_path: the path to the tech file
         :return: a VOSS object
         """
-
-        # We overload the __enter__ method to open the file
-        def open_tech_file(self):
-            # When a tech file is opened, we want to
-            # refresh the data store and data stream
-            self._data_store = {}
-            self._data_stream = open(tech_file_path, 'r')
-
-        cls.__enter__ = lambda self: open_tech_file(self)
-        # We overload the __exit__ method to close the file.
-        # We don't clear the data store here because the user may want to continue to read.
-        # Instead, we clear the data store when the tech file is opened.
-        cls.__exit__ = lambda self, exc_type, exc_val, exc_tb: self._data_stream.close()
-        return cls()
+        instance = cls()
+        instance.data_stream = open(file_path, 'r')
+        return instance
 
     def save(self, filename: Path):
         """
@@ -70,14 +59,6 @@ class SourceData(ABC):
         with open(filename, 'w') as f:
             json.dump(serialized, f, indent=2)
 
-    def __enter__(self):
-        # This method is overloaded depending on where the tech file is loaded from.
-        raise NotImplementedError('No __enter__ method has been defined for this SourceData.')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        # This method is overloaded depending on where the tech file is loaded from.
-        raise NotImplementedError('No __exit__ method has been defined for this SourceData.')
-
     def __getitem__(self, command: str) -> dict[Switch.Object, Any]:
         """
         Return the parsed output of a given command.
@@ -88,8 +69,8 @@ class SourceData(ABC):
         # If the command has already been parsed, return the results.
         # If it hasn't been parsed yet, iterate over the entire SourceData
         # as normal, but stop as soon as the command is encountered.
-        if command in self._data_store:
-            return self._data_store[command]
+        if command in self.data_store:
+            return self.data_store[command]
         # The iteration process will automatically populate the data store
         for cmd, obj in self:
             if cmd == command:
@@ -103,13 +84,13 @@ class SourceData(ABC):
 
         :return: a tuple containing the command and the parsed results
         """
-        for cmd, lines in self.__class__.extractor(self._data_stream, self._commands.keys()):
-            self._data_store[cmd] = self._commands[cmd](lines)
-            yield cmd, self._data_store[cmd]
+        for cmd, lines in self.__class__.extractor(self.data_stream, self._commands.keys()):
+            self.data_store[cmd] = self._commands[cmd](lines)
+            yield cmd, self.data_store[cmd]
 
     def read(self) -> dict[str, dict[Switch.Object, Any]]:
         """
-        Read the entire tech file into memory and return the parsed output of each command.
+        Read the entire source data into memory and return the parsed output of each command.
 
         :return: a dictionary containing the parsed output of each command
         """
@@ -161,6 +142,8 @@ class Switch(ABC):
             """
             ...
 
+    _data_store: dict[Type[Switch.Object], dict[Switch.Object, Any]] = {}
+
     @abstractmethod
     def __init__(self, source_data: SourceData): ...
 
@@ -172,7 +155,13 @@ class Switch(ABC):
     def save(self, filename: str) -> None: ...
 
     @abstractmethod
-    def __getitem__(self, t: Type) -> dict[Switch.Object, Any]: ...
+    def __getitem__(self, t: Type[Switch.Object]) -> dict[Switch.Object, Any]: ...
 
     @abstractmethod
-    def __iter__(self) -> tuple[Type, dict[Switch.Object, Any]]: ...
+    def __iter__(self) -> tuple[Type[Switch.Object], dict[Switch.Object, Any]]: ...
+
+    @abstractmethod
+    def __contains__(self, t: Type[Switch.Object]) -> bool: ...
+
+    @abstractmethod
+    def read(self) -> dict[Type[Switch.Object], dict[Switch.Object, Any]]: ...

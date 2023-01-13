@@ -30,7 +30,7 @@ class Comparison:
     @dataclass
     class Pair(Generic[P]):
         old: P
-        after: P
+        new: P
 
         def __eq__(self, other: Switch.Object) -> bool:
             return self.old == other
@@ -52,32 +52,53 @@ class Comparison:
         """
         Load a mapping file and return a Comparison object.
         The mapping file can be a JSON or YAML file.
-        It should be a dictionary of type keys to a sub-dictionary of old keys to after keys.
+        It should be a dictionary of type keys to a sub-dictionary of old keys to new keys.
 
         :param mapping_file_path: the path to the mapping file
         :return: a Comparison object
         """
-        with open(mapping_file_path, 'r') as f:
-            if mapping_file_path.suffix == '.json':
-                mapping = json.load(f)
-            elif mapping_file_path.suffix in ('.yaml', '.yml'):
-                mapping = load(f, Loader=FullLoader)
-            else:
-                raise ValueError('The mapping file must be a JSON or YAML file.')
-        # We now have a dictionary of strings to a list of dictionaries of strings to strings. We need to convert the
-        # root keys strings to BaseTypes and the values strings to Pairs of those type instances.
-        # We use the subclasses of Switch.Object as the keys because we want to be able to use the subclasses
-        # as the keys in the Pairs.
-        subclasses = {t.__name__: t for t in Switch.Object.__subclasses__()}
-        typed_mapping = {
-            subclasses[type_name]:
-                [Comparison.Pair(
-                    subclasses[type_name](old_key),
-                    subclasses[type_name](after_key)
-                ) for old_key, after_key in pairs.items()]
-            for type_name, pairs in mapping.items()
-        }
-        return cls(*args, mapping=typed_mapping)
+        m = None
+        if mapping_file_path:
+            with open(mapping_file_path, 'r') as f:
+                if mapping_file_path.suffix == '.json':
+                    mapping = json.load(f)
+                elif mapping_file_path.suffix in ('.yaml', '.yml'):
+                    mapping = load(f, Loader=FullLoader)
+                else:
+                    raise ValueError('The mapping file must be a JSON or YAML file.')
+            # We now have a dictionary of strings to a list of dictionaries of strings to strings. We need to convert the
+            # root keys strings to BaseTypes and the values strings to Pairs of those type instances.
+            # We use the subclasses of Switch.Object as the keys because we want to be able to use the subclasses
+            # as the keys in the Pairs.
+            subclasses = {t.__name__: t for t in Switch.Object.__subclasses__()}
+            m = {
+                subclasses[type_name]:
+                    [Comparison.Pair(
+                        subclasses[type_name](pair['before']),
+                        subclasses[type_name](pair['after'])
+                    ) for pair in pairs]
+                for type_name, pairs in mapping.items()
+            }
+        return cls(*args, mapping=m)
+
+    def save(self, file_path: Path):
+        """
+        Save the Comparison object to a JSON file.
+
+        :param file_path: the path to the file
+        """
+        serialized = {t.__name__: {str(k): v for k, v in d.items() if v} for t, d in self}
+        with open(file_path, 'w') as f:
+            json.dump(serialized, f, default=lambda o: str(o), indent=2)
+
+    def __getitem__(self, item: Type[Switch.Object]) -> dict[Switch.Object, Any]:
+        """
+        Get the differences for a given Type.
+
+        :param item: the Type
+        :return: a dictionary of differences by object of that Type
+        """
+        return dict(self)[item]
 
     def __iter__(self) -> tuple[Type[Switch.Object], dict[Switch.Object, Any]]:
         """
@@ -101,10 +122,10 @@ class Comparison:
                     new_object = old_object
                 else:
                     # We have a mapping for this object. We need to find the new object that matches the mapping.
-                    new_object = next(n for n in new_data if n == mapping[old_object])
+                    new_object = next(pair.new for pair in mapping if pair.old == old_object)
                     # If no new object matches the mapping, we throw a MappingError.
                     if new_object is None:
-                        raise MappingError(f'The new {t.__name__} data has no object with the key {mapping[old_object].after}.')
+                        raise MappingError(f'The new {t.__name__} data has no object with the key {mapping[old_object].new}.')
                 # If the object is not in the new data this could be for a number of reasons, but we will assume
                 # that it is because the two switches have different objects of this type. That isn't an error, we
                 # just don't want to compare it.
@@ -113,28 +134,46 @@ class Comparison:
                 new_values = new_data[new_object]
                 # We now have two corresponding old and new values for this object.
                 # We need to compare them using a comparison generator capable of recursion.
+                differences = { field: diff for field, diff in Comparison.compare(old_values, new_values) if diff }
+                differences.update({ "old": old_object } if differences else {})
+                tmp[new_object] = differences
+            # We now have a dictionary of differences for this Type.
+            yield t, tmp
 
+    @staticmethod
+    def compare(old_values: dict[str, Switch.Object], new_values: dict[str, Switch.Object]) -> tuple[str, dict[str, Any]]:
+        """
+        Compare two arbitrary value dictionaries and yield the difference if there is one.
 
-def _compare_values(old_values: dict[str, Any], after_values: dict[str, Any]) -> tuple[str, dict]:
-    """
-    Compare two arbitrary value dictionaries and yield the difference if there is one.
-
-    :param old_values: the old values in a dictionary
-    :param after_values: the after values in a dictionary
-    :return: a tuple of the field_name and the difference if there is one
-    """
-    for old_field_name, old_field_value in old_values.items():
-        if old_field_name not in after_values:
-            yield old_field_name, {"old": old_field_value, "after": None}
-            continue
-        for after_field_name, after_field_value in after_values.items():
-            if after_field_name not in old_values:
-                yield after_field_name, {"old": None, "after": after_field_value}
+        :param old_values: the old values in a dictionary
+        :param new_values: the new values in a dictionary
+        :return: a tuple of the field_name and a dictionary describing the difference if there is one
+        """
+        for old_field_name, old_field_value in old_values.items():
+            if old_field_name not in new_values:
+                # Field exists in old but not new.
+                yield old_field_name, {"old": old_field_value, "new": None}
                 continue
-            if old_field_name == after_field_name:
-                diff = old_field_value != after_field_value
-                if diff:
-                    yield old_field_name, diff
+            for new_field_name, new_field_value in new_values.items():
+                if new_field_name not in old_values:
+                    # Field exists in new but not in old.
+                    yield new_field_name, {"old": None, "new": new_field_value}
+                    continue
+                if old_field_name == new_field_name:
+                    # Field exists in both old and new, compare values.
+                    if type(old_field_value) != type(new_field_value):
+                        raise TypeError(f'Field {old_field_name} has different types in old and new.')
+                    if isinstance(old_field_value, dict):
+                        # If the value is another dictionary, we need to recurse.
+                        new_field_value: dict
+                        yield old_field_name, { k: v for k, v in Comparison.compare(old_field_value, new_field_value) }
+                    diff = old_field_value != new_field_value
+                    if diff:
+                        # Finally, if the values are different, yield the difference.
+                        yield old_field_name, diff
+                    # If the two are the same, we don't need to do anything. We just move on to the next field.
+
+
 
 
 

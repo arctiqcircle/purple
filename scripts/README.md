@@ -13,7 +13,7 @@ Analyzes a VOSS switch's tech file and outputs the switch's state. This state in
 Compares the state of two VOSS switches and outputs the differences between them. To use this script, you will need to have two tech files for the switches you want to compare. If there is an expectation that ports will change state between the two tech files, you can specify an optional file containing a mapping of ports between the two tech files using the `-m` or `--mapping` flag. This file should be in YAML or JSON format according to the following example:
 ```yaml
 ---
-Port:
+Interface:
   - from: 1/1
     to: 1/2
   - from: 1/2
