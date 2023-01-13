@@ -1,34 +1,85 @@
+from __future__ import annotations
+
 import re
 import json
 from pathlib import Path
-from collections.abc import Collection
-from typing import Any, NamedTuple, Type
-from base.typing import Switch
+from collections.abc import Collection, Iterable
+from typing import Any, Type, IO
+
+from abc import ABC
+from base.switch import Switch, SourceData
+from base.network_objects import NetworkObject
+
+
+class TechFile(SourceData, ABC):
+    """
+    A TechFile object represents a VOSS tech file.
+
+    It can be used to extract the output of commands.
+    """
+
+    @classmethod
+    def extractor(cls, text: Iterable[str], command_set: Collection[str]) -> (str, list[str]):
+        """
+            parse the tech file for the output of a given command and yield the results
+
+            :param text: the content of a VOSS tech file as an iterable of lines
+            :param command_set: the commands to extract output of
+            :return: a tuple holding the command and the command output
+            """
+
+        def _command_id(_c: str) -> re.Pattern:
+            return re.compile(fr'Command:\[\d+\] \[\s*{_c}\s*\]')
+
+        current_command = None
+        txt = []
+        for line in text:
+            if re.search(r"Command:\[\d+\]", line):
+                # This line contains a command.
+                if current_command:
+                    # We have reached a new command, and we have been gathering output.
+                    # This means we have finished gathering the output of the command.
+                    # So we yield the result.
+                    tmp = current_command, txt
+                    current_command = None
+                    txt = []
+                    yield tmp
+                for cmd in command_set:
+                    if _command_id(cmd).search(line):
+                        # One of the commands we are looking for has been found.
+                        # We can now start gathering the output. We use the state of current_command to signal this.
+                        current_command = cmd
+                        txt = []
+            elif current_command:
+                # We have found a command and are presently gathering output.
+                txt.append(line)
+
 
 class VOSS(Switch):
     """
-    The VOSS Class is a subclass of the Switch class.
+    The VOSS Class is a subclass of the `Switch` class.
+
     This class implements the abstract methods of the Switch class for VOSS specific functionality.
     """
 
-    def __init__(self, tech_lines: list[str]):
+    def __init__(self, tech_file: TechFile):
         """
         Create a new VOSS object.
 
-        :param tech_lines: the content of the tech file seperated by lines.
+        :param tech_file: a TechFile object
         """
-        self.tech_file = tech_lines
+        self.tech_file = tech_file
 
     @classmethod
     def load(cls, tech_file_path: Path):
         """
-        Load a tech file and return a VOSS object.
+        Load a TechFile from a Path and create a new VOSS object.
 
         :param tech_file_path: the path to the tech file
         :return: a VOSS object
         """
-        with open(tech_file_path, 'r') as f:
-            return cls(f.readlines())
+        with TechFile.load(tech_file_path) as tech_file:
+            return cls(tech_file)
 
     def save(self, filename: str) -> None:
         """
@@ -39,85 +90,44 @@ class VOSS(Switch):
 
         :param filename: the name of the new file
         """
-        data = self.parse()
-        serialized = { t.__name__: { str(k): v for k, v in d.items() } for t, d in data.items() }
+        serialized = { t.__name__: { str(k): v for k, v in d.items() } for t, d in self }
         with open(filename, 'w') as f:
             json.dump(serialized, f, indent=2)
 
-    def __getitem__(self, command: str) -> dict[NamedTuple, Any]:
+    def __getitem__(self, t: Type[VOSS.Object]) -> dict[VOSS.Object, Any]:
         """
-        Run the parsing function for a given command and return the result.
-        This is less memory efficient than iteration over the VOSS object, but it is more convenient.
+        Get the all the parsed results for a given VOSS.Object Type.
 
-        :param command: the command to parse
-        :return: the parsed results
+        :param t: the Type of the objects to return
+        :return: a dictionary of the parsed results
         """
-        _, lines = _extract_commands(self.tech_file, [command])
-        return self._commands[command](lines)
+        for object_type, data in self:
+            if t == object_type:
+                return data
 
-    def __iter__(self) -> tuple[str, dict[NamedTuple, Any]]:
+    def __iter__(self) -> tuple[Type[VOSS.Object], dict[VOSS.Object, Any]]:
         """
-        Iterate over the commands in the tech file and return the command and the parsed results.
-        This is more memory efficient than direct call, but it is less convenient.
-
-        :return: a tuple containing the command and the parsed results
+        Iterate over all the Types in the VOSS.Object class and yield all
+        the parsed results for each Type.
         """
-        for cmd, lines in _extract_commands(self.tech_file, self._commands.keys()):
-            yield cmd, self._commands[cmd](lines)
-
-    def parse(self) -> dict[Type, dict[NamedTuple, dict[str, Any]]]:
-        """
-        Parse all the data in the tech file for which we have parsing functions.
-        Group the results by the type of the indexing object into a new dictionary.
-        All these new dictionaries are then added to a new dictionary where they're
-        keyed by the name of the type of the indexing object.
-
-        :return: combined parsed data
-        """
-        data = {}
-        for cmd, result in self:
-            for indexing_object, sub_data in result.items():
-                t = type(indexing_object)
-                if t not in data:
-                    data[t] = {}
-                if indexing_object not in data[t]:
-                    data[t][indexing_object] = {}
-                d = sub_data if isinstance(sub_data, dict) else {type(sub_data).__name__: sub_data}
-                data[t][indexing_object].update(d)
-        return data
-
-
-def _extract_commands(text_lines: list[str], command_set: Collection[str]) -> (str, list[str]):
-    """
-    parse the tech file for the output of a given command and yield the results
-
-    :param text_lines: the content of a VOSS tech file seperated by lines
-    :param command_set: the commands to extract output of
-    :return: a tuple holding the command and the command output
-    """
-
-    def _command_id(_c: str) -> re.Pattern:
-        return re.compile(fr'Command:\[\d+\] \[\s*{_c}\s*\]')
-
-    current_command = None
-    txt = []
-    for line in text_lines:
-        if re.search(r"Command:\[\d+\]", line):
-            # This line contains a command.
-            if current_command:
-                # We have reached a new command, and we have been gathering output.
-                # This means we have finished gathering the output of the command.
-                # So we yield the result.
-                tmp = current_command, txt
-                current_command = None
-                txt = []
-                yield tmp
-            for cmd in command_set:
-                if _command_id(cmd).search(line):
-                    # One of the commands we are looking for has been found.
-                    # We can now start gathering the output. We use the state of current_command to signal this.
-                    current_command = cmd
-                    txt = []
-        elif current_command:
-            # We have found a command and are presently gathering output.
-            txt.append(line)
+        # In order to get all data for each type, we MUST
+        # iterate over the entire tech file up front.
+        # To make sure we have the most up-to-date data,
+        # we must parse the tech file each time we iterate.
+        # This is done with the `with` statement on the tech file.
+        tmp = {}
+        with self.tech_file as tech_file:
+            for command, result in tech_file:
+                for network_object, data in result.items():
+                    # We need to make sure that we have a dictionary for each type.
+                    tmp[type(network_object)] = tmp.get(type(network_object), {})
+                    # We need to make sure that we have a dictionary for each object.
+                    tmp[type(network_object)][network_object] = tmp[type(network_object)].get(network_object, {})
+                    # We now update the tmp dictionary with the new data.
+                    # However, because the result of the parsing function is a dictionary
+                    # of Any. We need to make sure the Any can be entered into the dictionary.
+                    d = data if isinstance(data, dict) else { data.__name__: data }
+                    tmp[type(network_object)][network_object].update(d)
+        # Now that we have all the data, we can yield it.
+        for t, d in tmp.items():
+            yield t, d

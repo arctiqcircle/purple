@@ -1,6 +1,6 @@
 ---
 Port:
-  - from: 1/8
-    to: 1/6
-  - from: 1/9
-    to: 1/7
+  - before: 1/8
+    after: 1/6
+  - before: 1/9
+    after: 1/7

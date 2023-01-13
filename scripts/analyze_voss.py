@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("filename", type=Path, help="a filepath to a VOSS tech file")
     parser.add_argument("--output", "-o", type=Path, default=os.getcwd(), help="a filepath for the analysis output")
     args = parser.parse_args(sys.argv[1:])
-    from base.typing import Port
+    from base.switch import Port
     from voss import VOSS
     voss = VOSS.load(args.filename)
     # Search through the tech file for the commands we're looking for.
