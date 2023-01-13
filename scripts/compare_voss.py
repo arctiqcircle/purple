@@ -19,21 +19,19 @@ except ValueError:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare the state of two VOSS tech files")
-    parser.add_argument("filename1", type=Path, help="a filepath to a VOSS tech file")
-    parser.add_argument("filename2", type=Path, help="a filepath to a VOSS tech file")
+    parser.add_argument("initial_file", type=Path, help="a filepath to a initial VOSS tech file")
+    parser.add_argument("latter_file", type=Path, help="a filepath to a latter VOSS tech file")
     parser.add_argument("--mapping", "-m", type=Path, default=None, help="a filepath to a mapping file")
     parser.add_argument("--output", "-o", type=Path, default=os.getcwd(), help="a filepath for the analysis output")
     args = parser.parse_args(sys.argv[1:])
     from base.compare import Comparison
     from voss import VOSS
     # We load the two tech files into two VOSS objects
-    voss1 = VOSS.load(args.filename1)
-    voss2 = VOSS.load(args.filename2)
+    voss_old = VOSS.load(args.initial_file)
+    voss_new = VOSS.load(args.latter_file)
     # We then compare the two objects using the Comparison class with the optional mapping file
-    compare = Comparison.load(args.mapping)
-    delta = compare(voss1, voss2)
+    compare = Comparison.load(voss_old, voss_new, mapping_file_path=args.mapping)
     # We then output the results to a JSON file
     if not args.output.exists():
         args.output.mkdir()
-    with open(args.output / "delta.json", "w") as f:
-        json.dump(delta, f, indent=2)
+    compare.save(args.output / 'comparison.json')

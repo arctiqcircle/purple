@@ -1,11 +1,11 @@
 import re
 from typing import Any
 
-from base.typing import Interface, Network
-from voss import VOSS
+from base.network_objects import Interface, Network
+from voss import TechFile
 
 
-@VOSS.parser("show ip interface")
+@TechFile.parser("show ip interface")
 def get_ip_interfaces(text_lines: list[str]) -> dict[Interface, Network]:
     """
     parse the output of "show ip interface" and create structured data correlating
@@ -27,7 +27,7 @@ def get_ip_interfaces(text_lines: list[str]) -> dict[Interface, Network]:
     return {iface: net for iface, net in search_lines()}
 
 
-@VOSS.parser("show ip route")
+@TechFile.parser("show ip route")
 def get_ip_routes(text_lines: list[str]) -> dict[Network, dict[str, Any]]:
     """
     parse the output of "show ip route" and create structured data correlating
