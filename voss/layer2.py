@@ -52,7 +52,7 @@ def get_isis_adjacencies(text_lines: list[str]) -> dict[Interface, dict[str, VOS
         port_name = re.search(r'Port\d+/\d+', line)
         if port_name:
             # We have found a line indicating some isis adjacency information
-            port = Interface(port_name[0].replace("Interface", ""))
+            port = Interface(port_name[0].replace("Port", ""))
             adj = re.search(r'([\w-]+)', line.split()[-2])[0]
             status = re.search(r'(\w+)', line.split()[-1])[0]
             data.update({port: {"ISIS Adjacency": Connection(adj), "ISIS Status": State(status)}})
