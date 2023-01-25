@@ -90,7 +90,7 @@ class VOSS(Switch):
         """
         serialized = { t.__name__: { str(k): v for k, v in d.items() } for t, d in self }
         with open(filename, 'w') as f:
-            json.dump(serialized, f, indent=2)
+            json.dump(serialized, f, indent=2, default=lambda x: str(x))
 
     def __getitem__(self, t: Type[VOSS.Object]) -> dict[VOSS.Object, Any] | None:
         """

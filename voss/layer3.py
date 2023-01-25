@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from base.network_objects import Interface, Network
+from base.network_objects import Interface, Network, Basic
 from voss import TechFile
 
 
@@ -48,5 +48,5 @@ def get_ip_routes(text_lines: list[str]) -> dict[Network, dict[str, Any]]:
                 hop = matches[2] if len(matches) == 3 else line.split()[2].strip()
                 iface = line.split()[5].strip()
                 iface = Interface(iface) if re.search(r'[a-zA-Z]]', iface) else Interface("Vlan" + iface)
-                yield network, {"Next Hop": hop, "Outgoing Interface": iface}
+                yield network, {"Next Hop": Basic(hop), "Outgoing Interface": iface}
     return {net: data for net, data in search_lines()}

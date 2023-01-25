@@ -8,6 +8,7 @@ import os
 import json
 import argparse
 from pathlib import Path
+from datetime import datetime
 
 # Set the path to the parent directory of the current file. Unless this script is
 # moved, this should be the root of the project.
@@ -32,6 +33,11 @@ if __name__ == "__main__":
     # We then compare the two objects using the Comparison class with the optional mapping file
     compare = Comparison.load(voss_old, voss_new, mapping_file_path=args.mapping)
     # We then output the results to a JSON file
+    default_filename = f'{datetime.now().strftime("%m%d%-y-%H%M")}_compare.json'
     if not args.output.exists():
-        args.output.mkdir()
-    compare.save(args.output / 'comparison.json')
+        compare.save(args.output)
+    else:
+        if args.output.is_dir():
+            compare.save(args.output / default_filename)
+        else:
+            compare.save(args.output)
