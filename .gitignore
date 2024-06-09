@@ -1,0 +1,9 @@
+# Development Environment
+.vscode
+
+# Python Files
+.venv
+__pycache__
+
+# Operating System Files
+.DS_Store

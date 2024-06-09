@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from base.network_objects import Interface, MacAddresses, State, Connection
+from model.network_objects import Interface, MacAddresses, State, Connection
 from voss import TechFile, VOSS
 
 
@@ -12,7 +12,7 @@ def get_lldp_neighbors(text_lines: list[str]) -> dict[Interface, dict[str, VOSS.
     parse the output of "show lldp neighbor" and create structured data correlating
     the local port name with the lldp neighbor hostname and remote port name
 
-    :param text_lines: the output of "show lldp neighbor" seperated by lines
+    :param text_lines: the output of "show lldp neighbor" separated by lines
     :return: a dictionary holding lldp neighbor hostnames and remote port indexed by port names
     """
     data = {}

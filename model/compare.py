@@ -8,7 +8,7 @@ from pathlib import Path
 import json
 from yaml import FullLoader, load
 
-from base.switch import Switch
+from model.switch import Switch
 
 P = TypeVar('P', bound=Switch.Object.__subclasses__())
 

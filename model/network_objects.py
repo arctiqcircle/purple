@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-from base.switch import Switch
+from model.switch import Switch
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,8 @@ class Basic(Switch.Object):
 @dataclass(frozen=True)
 class State(Basic):
     """
-    The State class represents the operational or administrative state of a Switch object.
+    The State class represents the operational or administrative state of a
+    Switch object.
     """
 
 @dataclass(frozen=True)

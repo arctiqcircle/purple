@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from base.network_objects import Interface, Network, Basic
+from model.network_objects import Interface, Network, Basic
 from voss import TechFile
 
 

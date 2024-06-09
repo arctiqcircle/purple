@@ -7,7 +7,7 @@ from collections.abc import Collection, Iterable
 from typing import Any, Type, Callable
 
 from abc import ABC
-from base.switch import Switch, SourceData
+from model.switch import Switch, SourceData
 
 
 class TechFile(SourceData):
